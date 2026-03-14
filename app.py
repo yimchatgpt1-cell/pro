@@ -16,11 +16,12 @@ TRANSLATION_MAP = {
     'squid': 'ปลาหมึก',
     'rice': 'ข้าว',
     'pork': 'หมู',
-    'crab': 'ปู',
     'basil': 'ใบกะเพรา',
+    'Minced pork': 'หมูสับ',    
+    'noodles': 'เส้นใหญ่',
     'crispy pork': 'หมูกรอบ',
+    'kale': 'คะน้า',
     'fried egg': 'ไข่ดาว',
-    'egg': 'ไข่'
 }
 
 @app.route('/analyze-food', methods=['POST'])
