@@ -5,11 +5,23 @@ import uuid
 
 app = Flask(__name__)
 
-# Initialize Client ตัวเดียวใช้ได้ทุกโมเดล
 CLIENT = InferenceHTTPClient(
     api_url="https://serverless.roboflow.com",
     api_key="FLg8F46YDgsleKPyVCR1"
 )
+
+# 🗺️ ตารางแปลภาษาให้ตรงกับฐานข้อมูล
+TRANSLATION_MAP = {
+    'shrimp': 'กุ้ง',
+    'squid': 'ปลาหมึก',
+    'rice': 'ข้าว',
+    'pork': 'หมู',
+    'crab': 'ปู',
+    'basil': 'ใบกะเพรา',
+    'crispy pork': 'หมูกรอบ',
+    'fried egg': 'ไข่ดาว',
+    'egg': 'ไข่'
+}
 
 @app.route('/analyze-food', methods=['POST'])
 def analyze_food():
@@ -21,30 +33,29 @@ def analyze_food():
     file.save(temp_path)
 
     try:
-        # --- ขั้นตอนที่ 1: Classification (ทายชื่อเมนู) ---
-        # ใช้ model_id สำหรับ Menu Classification
+        # 1. เรียก Classification (หาชื่อเมนู)
         class_result = CLIENT.infer(temp_path, model_id="menu-a4fzp/3")
-        menu_name = "ไม่ทราบชื่อเมนู"
-        if class_result.get('predictions'):
-            # ดึงชื่อคลาสที่ค่าความมั่นใจสูงสุด
-            menu_name = class_result['predictions'][0]['class']
+        eng_menu = class_result['predictions'][0]['class'] if class_result.get('predictions') else "unknown"
 
-        # --- ขั้นตอนที่ 2: Object Detection (หาวัตถุดิบ) ---
-        # ใช้ model_id สำหรับ Ingredient Detection (v33)
+        # 2. เรียก Object Detection (หาวัตถุดิบ)
         detect_result = CLIENT.infer(temp_path, model_id="ingredient_detection-vouls/33")
-        
-        # กรองวัตถุดิบที่เจอ (เอาเฉพาะชื่อ ไม่เอาตัวซ้ำ)
         raw_preds = detect_result.get('predictions', [])
-        ingredients = list(set([p['class'] for p in raw_preds if p['confidence'] > 0.25]))
 
-        # --- ขั้นตอนที่ 3: ลบไฟล์และส่งผลกลับ ---
+        # 3. แปลผลลัพธ์เป็นภาษาไทยเพื่อไป Match กับ Firebase
+        detected_thai = []
+        for p in raw_preds:
+            eng_name = p['class'].lower().strip()
+            if p['confidence'] > 0.35: # กรองความมั่นใจ
+                thai_name = TRANSLATION_MAP.get(eng_name)
+                if thai_name and thai_name not in detected_thai:
+                    detected_thai.append(thai_name)
+
         os.remove(temp_path)
 
         return jsonify({
             "success": True,
-            "menu": menu_name,          # ผลจากโมเดล 1
-            "ingredients": ingredients,   # ผลจากโมเดล 2
-            "raw_detection": raw_preds   # ส่งพิกัดไปเผื่อ Flutter ใช้วาดกรอบ
+            "menu_name": eng_menu,      # ส่งไปแปลที่ Flutter ต่อ
+            "ingredients_thai": detected_thai  # ส่งชื่อภาษาไทยไป Match Firebase ทันที
         })
 
     except Exception as e:
@@ -52,4 +63,4 @@ def analyze_food():
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
