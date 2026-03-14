@@ -39,7 +39,7 @@ def analyze_food():
         eng_menu = class_result['predictions'][0]['class'] if class_result.get('predictions') else "unknown"
 
         # 2. เรียก Object Detection (หาวัตถุดิบ)
-        detect_result = CLIENT.infer(temp_path, model_id="ingredient_detection-vouls/33")
+        detect_result = CLIENT.infer(temp_path, model_id="ingredient_detection-vouls/35")
         raw_preds = detect_result.get('predictions', [])
 
         # 3. แปลผลลัพธ์เป็นภาษาไทยเพื่อไป Match กับ Firebase
