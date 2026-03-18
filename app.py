@@ -37,6 +37,10 @@ def analyze_food():
         # 1. เรียก Classification (หาชื่อเมนู)
         class_result = CLIENT.infer(temp_path, model_id="menu-a4fzp/3")
         eng_menu = class_result['predictions'][0]['class'] if class_result.get('predictions') else "ไม่มีเมนูอาหารนี้ในระบบ"
+        if top_prediction['confidence'] > 0.5:
+            menu_name = top_prediction['class']
+        else:
+            menu_name = "ไม่มีข้อมลูในระบบ"
 
         # 2. เรียก Object Detection (หาวัตถุดิบ)
         detect_result = CLIENT.infer(temp_path, model_id="ingredient_detection-vouls/35")
